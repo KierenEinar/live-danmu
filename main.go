@@ -4,6 +4,7 @@ import (
 	"github.com/gorilla/websocket"
 	"live-danmu/service"
 	"net/http"
+	"sync"
 )
 
 var (
@@ -25,7 +26,6 @@ func main () {
 		var (
 			conn * websocket.Conn
 			err error
-			data []byte
 		)
 
 		conn, err = upgrader.Upgrade(writer, request, nil)
@@ -33,18 +33,19 @@ func main () {
 			return
 		}
 
-		for {
-			_, data ,err = conn.ReadMessage()
-			if err != nil {
-				goto ERR
-			}
-			err := conn.WriteMessage(websocket.TextMessage, data)
-			if err != nil {
-				goto ERR
-			}
+		wsConnection := service.WsConnection{
+			conn,
+			make (chan *service.WsMsgType, 1000),
+			make (chan * service.WsMsgType, 1000),
+			sync.Mutex{},
+			false,
+			make (chan byte, 1),
 		}
-	ERR:
-		conn.Close()
+		go wsConnection.WsHeartBeat()
+
+		go wsConnection.WsReadLoop()
+
+		go wsConnection.WsWriteLoop()
 	})
 
 	http.ListenAndServe("0.0.0.0:7777",nil)
