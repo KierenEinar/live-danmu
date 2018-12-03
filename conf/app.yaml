@@ -1,0 +1,6 @@
+redisClusterNodes: 192.168.200.136:6379,192.168.200.136:6380,192.168.200.141:6379,192.168.200.131:6380,192.168.200.142:6379,192.168.200.142:6380
+redisPoolSize: 50
+redisMinIdleConns: 20
+redisIdleTimeout: 0s
+redisDialTimeout: 5s
+
