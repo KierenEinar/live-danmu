@@ -17,12 +17,17 @@ const BUCKET_PARTITION = 1000
 type Bucket struct {
 	OutChannel chan *SubscribeMessage //队列
 	RWMutex sync.RWMutex	//读写锁
-	index int	//buckets 第几个
 	Conn mapset.Set
 }
 
+
+type Segment struct {
+	Buckets map[string]*Bucket
+	RWMutex sync.RWMutex
+}
+
 type BucketManager struct {
-	Buckets map[string]*Bucket //一致性hash, roomId -> 打散到bucket
+	Segments map[string]*Segment //一致性hash, roomId -> 打散到bucket
 	consistent *consistent.Consistent
 }
 
@@ -40,28 +45,65 @@ func GetBucketManager () *BucketManager{
 
 	c := consistent.New()
 
-	bucketMap := make(map[string]*Bucket,BUCKET_PARTITION)
+	segment := make(map[string]*Segment,BUCKET_PARTITION)
 
 	for  i := 0; i< BUCKET_PARTITION ; i++ {
 		var buffer bytes.Buffer
 		buffer.WriteString(strconv.Itoa(i))
 		partition := buffer.String()
-		bucketMap[partition] = &Bucket{
-			make (chan *SubscribeMessage, 1000),
-			sync.RWMutex{},
-			i,
-			mapset.NewThreadUnsafeSet(),
-		}
+		segment[partition] = &Segment{make(map[string]*Bucket), sync.RWMutex{}}
 		c.Add(partition)
 	}
-	bucketManager = &BucketManager{bucketMap, c}
+	bucketManager = &BucketManager{segment, c}
 	return bucketManager
 }
 
-func (this *BucketManager) AddConn2Buckets (connection *WsConnection, roomId string) {
-	partition,_ := this.consistent.Get(roomId)
-	bucket := this.Buckets[partition]
+func (this *BucketManager) AddConn2Buckets (connection *WsConnection) {
+	roomId := connection.RoomId
+	bucket := this.getBucket(roomId)
 	bucket.RWMutex.Lock()
 	defer bucket.RWMutex.Unlock()
 	bucket.Conn.Add(connection)
+}
+
+func (this * BucketManager) getBucket (roomId string) *Bucket {
+
+	segment := this.getSegment(roomId)
+	buckets := segment.Buckets
+	bucket := buckets[roomId]
+
+	if bucket == nil {
+		segment.RWMutex.Lock()
+		bucket = &Bucket{
+			make (chan *SubscribeMessage, 1000),
+			sync.RWMutex{},
+			mapset.NewSet(),
+		}
+		buckets[roomId] = bucket
+		segment.RWMutex.Unlock()
+	}
+	return bucket
+}
+
+func (this * BucketManager) getSegment (roomId string) *Segment {
+	partition,_ := this.consistent.Get(roomId)
+	segment := this.Segments[partition]
+	return segment
+}
+
+func (this *BucketManager) DelConn4Buckets (connection *WsConnection) {
+	roomId := connection.RoomId
+	bucket := this.getBucket(roomId)
+	bucket.RWMutex.Lock()
+	defer bucket.RWMutex.Unlock()
+	bucket.Conn.Remove(connection)
+	if bucket.Conn.Cardinality() == 0 {
+		segment := this.getSegment(roomId)
+		delete (segment.Buckets, roomId)
+	}
+
+}
+
+func (this *Bucket) push () {
+
 }

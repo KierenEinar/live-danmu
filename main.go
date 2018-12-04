@@ -26,7 +26,7 @@ func main () {
 
 	bucketManager := service.GetBucketManager()
 
-	http.HandleFunc("/ws", func(writer http.ResponseWriter, request *http.Request) {
+	http.HandleFunc("/ws/", func(writer http.ResponseWriter, request *http.Request) {
 		var (
 			conn * websocket.Conn
 			err error
@@ -35,7 +35,7 @@ func main () {
 
 		requestUri := request.RequestURI
 
-		if !strings.Contains(requestUri, "/live/") || !strings.Contains(requestUri, "/vod/") {
+		if !strings.Contains(requestUri, "/live/") && !strings.Contains(requestUri, "/vod/") {
 			log.Printf("非法请求")
 			return
 		}
@@ -62,9 +62,10 @@ func main () {
 			sync.Mutex{},
 			false,
 			make (chan byte, 1),
+			roomId,
 		}
 
-		bucketManager.AddConn2Buckets(&wsConnection, roomId)
+		bucketManager.AddConn2Buckets(&wsConnection)
 
 		go wsConnection.WsHeartBeat()
 

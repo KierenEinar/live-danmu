@@ -16,7 +16,7 @@
                 if (ws) {
                     return false;
                 }
-                ws = new WebSocket("ws://localhost:7777/ws");
+                ws = new WebSocket("ws://localhost:7777/ws/live/12345");
                 ws.onopen = function(evt) {
                     print("OPEN");
                 }

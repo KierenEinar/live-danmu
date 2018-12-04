@@ -13,6 +13,7 @@ type WsConnection struct {
 	Mutex sync.Mutex	// 避免重复关闭管道
 	IsClosed bool
 	CloseChan chan byte  // 关闭通知
+	RoomId string
 }
 
 type WsMsgType struct {
@@ -70,9 +71,11 @@ func (this * WsConnection) WsWriteLoop () error {
 }
 
 func (this *WsConnection) WsClose () {
+	bucketManager := GetBucketManager()
 	this.Mutex.Lock()
 	defer this.Mutex.Unlock()
 	if !this.IsClosed {
+		bucketManager.DelConn4Buckets(this)
 		this.WsSocketConn.Close()
 		this.IsClosed = true
 		close(this.CloseChan)
