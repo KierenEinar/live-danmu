@@ -55,5 +55,15 @@ func Sub (chanel string) {
 			log.Printf("sub redis message -> %s", message.Payload)
 		}
 	}
+}
 
+func PSub(chanel string, handler SubscribeHandler) {
+	pubSub := redisCluster.PSubscribe(chanel)
+	for {
+		message, err := pubSub.ReceiveMessage()
+		if err!= nil {
+			log.Printf("sub redis message err -> %s", err)
+		}
+		go handler.Subscribe(message.Channel, message.Payload)
+	}
 }

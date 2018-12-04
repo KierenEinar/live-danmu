@@ -3,4 +3,5 @@ redisPoolSize: 50
 redisMinIdleConns: 20
 redisIdleTimeout: 0s
 redisDialTimeout: 5s
+serverAddr: 0.0.0.0:7777
 

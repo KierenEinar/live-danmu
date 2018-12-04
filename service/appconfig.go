@@ -15,6 +15,7 @@ type AppConfig struct {
 	RedisMinIdleConns int `yaml:"redisMinIdleConns"`
 	RedisIdleTimeout string `yaml:"redisIdleTimeout"`
 	RedisDialTimeout string `yaml:"redisDialTimeout"`
+	ServerAddr string `yaml:"serverAddr"`
 }
 
 func LoadConfig () AppConfig{

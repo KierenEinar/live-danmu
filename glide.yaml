@@ -6,3 +6,7 @@ import:
   version: ~2.2.2
 - package: github.com/gorilla/websocket
   version: ~1.4.0
+- package: github.com/stathat/consistent
+  version: ~1.0.0
+- package: github.com/deckarep/golang-set
+  version: ~1.7.1

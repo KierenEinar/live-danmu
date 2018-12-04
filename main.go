@@ -3,7 +3,9 @@ package main
 import (
 	"github.com/gorilla/websocket"
 	"live-danmu/service"
+	"log"
 	"net/http"
+	"strings"
 	"sync"
 )
 
@@ -20,13 +22,33 @@ func main () {
 	appConfig := service.LoadConfig()
 	redisConfig := appConfig.GetRedisConfig()
 	redisConfig.Connect()
-	go service.Sub("hello")
+	service.InitSubscribes()
+
+	bucketManager := service.GetBucketManager()
 
 	http.HandleFunc("/ws", func(writer http.ResponseWriter, request *http.Request) {
 		var (
 			conn * websocket.Conn
 			err error
+			roomId string
 		)
+
+		requestUri := request.RequestURI
+
+		if !strings.Contains(requestUri, "/live/") || !strings.Contains(requestUri, "/vod/") {
+			log.Printf("非法请求")
+			return
+		}
+
+
+		if strings.Contains(requestUri, "/live/") {
+			roomId = requestUri[strings.Index(requestUri, "/live/")+1:]
+			roomId = strings.Replace(roomId, "/", ":", -1)
+		} else {
+			roomId = requestUri[strings.Index(requestUri, "/vod/")+1:]
+			roomId = strings.Replace(roomId, "/", ":", -1)
+		}
+
 
 		conn, err = upgrader.Upgrade(writer, request, nil)
 		if err != nil {
@@ -41,6 +63,9 @@ func main () {
 			false,
 			make (chan byte, 1),
 		}
+
+		bucketManager.AddConn2Buckets(&wsConnection, roomId)
+
 		go wsConnection.WsHeartBeat()
 
 		go wsConnection.WsReadLoop()
@@ -48,6 +73,6 @@ func main () {
 		go wsConnection.WsWriteLoop()
 	})
 
-	http.ListenAndServe("0.0.0.0:7777",nil)
+	http.ListenAndServe(appConfig.ServerAddr, nil)
 
 }

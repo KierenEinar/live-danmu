@@ -1,6 +1,8 @@
-hash: 9aeda716a4e331be6b0fb001b5af3f35726ba392bab7e4c36804dfff4340e30e
-updated: 2018-12-03T17:01:13.9630954+08:00
+hash: 44aa9a3712cb1141b2340bed7502f7eab8f09c09b8866b6b0167459cfd7aa35a
+updated: 2018-12-04T19:40:20.4269192+08:00
 imports:
+- name: github.com/deckarep/golang-set
+  version: cbaa98ba5575e67703b32b4b19f73c91f3c4159e
 - name: github.com/go-redis/redis
   version: b3d9bf10f6666b2ee5100a6f3f84f4caf3b4e37d
   subpackages:
@@ -15,4 +17,6 @@ imports:
   version: 51d6538a90f86fe93ac480b35f37b2be17fef232
 - name: github.com/gorilla/websocket
   version: 66b9c49e59c6c48f0ffce28c2d8b8a5678502c6d
+- name: github.com/stathat/consistent
+  version: ad91dc4a3a642859730ff3d65929fce009bfdc23
 testImports: []
