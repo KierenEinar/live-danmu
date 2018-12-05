@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/deckarep/golang-set"
 	"github.com/stathat/consistent"
+	"log"
 	"strconv"
 	"sync"
 )
@@ -33,28 +34,27 @@ type BucketManager struct {
 
 var (
 	bucketManager *BucketManager
-	mutex sync.Mutex
+	once = sync.Once{}
 )
 
 func GetBucketManager () *BucketManager{
-	if bucketManager != nil {
-		return bucketManager
-	}
-	mutex.Lock()
-	defer mutex.Unlock()
 
-	c := consistent.New()
+	once.Do(func() {
 
-	segment := make(map[string]*Segment,BUCKET_PARTITION)
+		c := consistent.New()
 
-	for  i := 0; i< BUCKET_PARTITION ; i++ {
-		var buffer bytes.Buffer
-		buffer.WriteString(strconv.Itoa(i))
-		partition := buffer.String()
-		segment[partition] = &Segment{make(map[string]*Bucket), sync.RWMutex{}}
-		c.Add(partition)
-	}
-	bucketManager = &BucketManager{segment, c}
+		segment := make(map[string]*Segment,BUCKET_PARTITION)
+
+		for  i := 0; i< BUCKET_PARTITION ; i++ {
+			var buffer bytes.Buffer
+			buffer.WriteString(strconv.Itoa(i))
+			partition := buffer.String()
+			segment[partition] = &Segment{make(map[string]*Bucket), sync.RWMutex{}}
+			c.Add(partition)
+		}
+		bucketManager = &BucketManager{segment, c}
+	})
+
 	return bucketManager
 }
 
@@ -67,7 +67,7 @@ func (this *BucketManager) AddConn2Buckets (connection *WsConnection) {
 }
 
 func (this * BucketManager) getBucket (roomId string) *Bucket {
-
+	log.Printf("%p", this)
 	segment := this.getSegment(roomId)
 	buckets := segment.Buckets
 	bucket := buckets[roomId]

@@ -1,7 +1,11 @@
 package service
 
+import (
+	"github.com/gorilla/websocket"
+	"log"
+)
+
 const LIVE_DANMU_SUBSCRIBE_PATTERN string  = "live::danmu::*"
-const VOD_DANMU_SUBSCRIBE_PATTERN string = "vod::danmu::*"
 
 var (
 	liveDanmuSubscribeHandler = LiveDanmuSubscribeHandler{
@@ -28,22 +32,31 @@ func (this LiveDanmuSubscribeHandler) Subscribe(channel string, message string) 
 }
 
 func (this LiveDanmuSubscribeHandler) ProcessLoop () {
-	//for {
-	//	select {
-	//		case msg:= <-this.InChan:
-	//			go func() {
-	//				//danmuCache.WriteLiveDanmu(msg)
-	//			}()
-	//	}
-	//}
+
+	channelPrefix := LIVE_DANMU_SUBSCRIBE_PATTERN[:len(LIVE_DANMU_SUBSCRIBE_PATTERN)-1]
+
+	bucketManager:= GetBucketManager()
+
+	for {
+		select {
+			case msg:= <-this.InChan:
+				go func() {
+					channel := msg.channel
+					message := msg.message
+					roomId := channel[len(channelPrefix):]
+					log.Printf("收到redis message -> %s, roomId -> %s", message, roomId)
+					bucket := bucketManager.getBucket(roomId)
+					data := []byte(message)
+					for i:=range bucket.Conn.Iter() {
+						wsConnection := i.(*WsConnection)
+						go wsConnection.wsWrite(websocket.TextMessage, data)
+					}
+				}()
+		}
+	}
 }
 
 func InitSubscribes () {
-
 	go liveDanmuSubscribeHandler.ProcessLoop()
 	go PSub(LIVE_DANMU_SUBSCRIBE_PATTERN, liveDanmuSubscribeHandler) //监听直播房间弹幕消息队列
-
-	//go PSub(VOD_DANMU_SUBSCRIBE_PATTERN) //监听回放弹幕消息队列
-
-
 }
