@@ -47,6 +47,8 @@ func (this LiveDanmuSubscribeHandler) ProcessLoop () {
 					log.Printf("收到redis message -> %s, roomId -> %s", message, roomId)
 					bucket := bucketManager.getBucket(roomId)
 					data := []byte(message)
+					bucket.RWMutex.RLock()
+					defer bucket.RWMutex.RUnlock()
 					for i:=range bucket.Conn.Iter() {
 						wsConnection := i.(*WsConnection)
 						go wsConnection.wsWrite(websocket.TextMessage, data)
